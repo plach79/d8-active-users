@@ -1,0 +1,5 @@
+name: Active Users Example
+type: module
+description: 'Example module to show case the new Entity Storage API.'
+package: Examples
+core: 8.x

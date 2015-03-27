@@ -1,0 +1,41 @@
+<?php
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function active_users_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $fields = [];
+
+  if ($entity_type->id() == 'user') {
+    $fields['last_created_node'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel('Last created node')
+      ->setRevisionable(TRUE)
+      ->setSetting('target_type', 'node')
+      ->setSetting('handler', 'default');
+
+    $fields['node_count'] = BaseFieldDefinition::create('integer')
+      ->setLabel('Number of created nodes')
+      ->setRevisionable(TRUE)
+      ->setDefaultValue(0);
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function active_users_node_insert(NodeInterface $node) {
+  \Drupal::service('active_users.manager')->onNodeCreated($node);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function active_users_node_delete(NodeInterface $node) {
+  \Drupal::service('active_users.manager')->onNodeDeleted($node);
+}
