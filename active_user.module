@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * Contains the "Active User Example" module hook implementations.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function active_user_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $fields = [];
+
+  if ($entity_type->id() == 'user') {
+    $fields['active_user_last_created_node'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel('Last created node')
+      ->setRevisionable(TRUE) // This will be revisionable if the user entity type is.
+      ->setSetting('target_type', 'node')
+      ->setSetting('handler', 'default');
+
+    $fields['active_user_node_count'] = BaseFieldDefinition::create('integer')
+      ->setLabel('Number of created nodes')
+      ->setRevisionable(TRUE) // This will be revisionable if the user entity type is.
+      ->setDefaultValue(0);
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function active_user_node_insert(NodeInterface $node) {
+  /** @var \Drupal\active_user\ActiveUserManagerInterface $manager */
+  $manager = \Drupal::service('active_user.manager');
+  $manager->onNodeCreated($node);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function active_user_node_delete(NodeInterface $node) {
+  /** @var \Drupal\active_user\ActiveUserManagerInterface $manager */
+  $manager = \Drupal::service('active_user.manager');
+  $manager->onNodeDeleted($node);
+}

@@ -1,16 +1,22 @@
 <?php
 
-namespace Drupal\active_users;
+/**
+ * @file
+ * Contains \Drupal\active_user\ActiveUserManager.
+ */
+
+namespace Drupal\active_user;
 
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 
 /**
- * Active users manager.
+ * Active user manager.
  */
-class ActiveUsersManager {
+class ActiveUserManager implements ActiveUserManagerInterface {
 
   /**
    * The user storage handler.
@@ -38,15 +44,20 @@ class ActiveUsersManager {
   }
 
   /**
-   * Returns a list of active users.
-   *
-   * @return \Drupal\user\UserInterface[]
+   * {@inheritdoc}
    */
-  public function getActiveUsers() {
+  public function getActiveUser(UserInterface $user) {
+    return new ActiveUserWrapper($user);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getActiveUserList() {
     $ids = $this->userStorage->getQuery()
       ->condition('status', 1)
-      ->condition('node_count', 0, '>')
-      ->condition('last_created_node.entity.status', 1)
+      ->condition('active_user_node_count', 0, '>')
+      ->condition('active_user_last_created_node.entity.status', 1)
       ->sort('login', 'DESC')
       ->execute();
 
@@ -54,15 +65,13 @@ class ActiveUsersManager {
   }
 
   /**
-   * Acts when a new node is created.
-   *
-   * @param \Drupal\node\NodeInterface $node
-   *   The node being created.
+   * {@inheritdoc}
    */
   public function onNodeCreated(NodeInterface $node) {
     $user = $node->getOwner();
-    $user->last_created_node = $node;
-    $user->node_count = $this->getNodeCount($user);
+    $this->getActiveUser($user)
+      ->setLastCreatedNode($node)
+      ->setNodeCount($this->getNodeCount($user));
     $user->save();
   }
 
@@ -85,17 +94,15 @@ class ActiveUsersManager {
   }
 
   /**
-   * Acts when a new node is deleted.
-   *
-   * @param \Drupal\node\NodeInterface $node
-   *   The node being deleted.
+   * {@inheritdoc}
    */
   public function onNodeDeleted(NodeInterface $node) {
     $user = $node->getOwner();
-    if ($user->last_created_node->target_id == $node->id()) {
-      $user->last_created_node = $this->getLastCreatedNode($user);
+    $active_user = $this->getActiveUser($user);
+    if ($active_user->getLastCreatedNodeId() == $node->id() && ($last = $this->getLastCreatedNode($user))) {
+      $active_user->setLastCreatedNode($last);
     }
-    $user->node_count = $this->getNodeCount($user);
+    $active_user->setNodeCount($this->getNodeCount($user));
     $user->save();
   }
 
@@ -105,8 +112,8 @@ class ActiveUsersManager {
    * @param \Drupal\user\UserInterface $user
    *   The node author.
    *
-   * @return int
-   *   The last created node identifier.
+   * @return \Drupal\node\NodeInterface
+   *   The last created node.
    */
   protected function getLastCreatedNode(UserInterface $user) {
     $result = $this->nodeStorage->getQuery()
@@ -115,7 +122,7 @@ class ActiveUsersManager {
       ->range(0, 1)
       ->execute();
 
-    return reset($result);
+    return Node::load(reset($result));
   }
 
 }

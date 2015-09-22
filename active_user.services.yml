@@ -1,0 +1,4 @@
+services:
+  active_user.manager:
+    class: Drupal\active_user\ActiveUserManager
+    arguments: ['@entity.manager']

@@ -1,0 +1,7 @@
+active_user.active_user_list:
+  path: 'active-user/list'
+  defaults:
+    _controller: '\Drupal\active_user\Controller\ActiveUserList::view'
+    _title: 'Active user list'
+  requirements:
+    _permission: 'access content'

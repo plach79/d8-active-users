@@ -1,31 +1,35 @@
 <?php
 
-namespace Drupal\active_users\Controller;
+/**
+ * @file
+ * Contains \Drupal\active_user\ActiveUserList.
+ */
 
-use Drupal\Component\Utility\String;
+namespace Drupal\active_user\Controller;
+
+use Drupal\active_user\ActiveUserManagerInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\active_users\ActiveUsersManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Active users list controller.
+ * Active user list controller.
  */
-class ActiveUsersList extends ControllerBase {
+class ActiveUserList extends ControllerBase {
 
   /**
    * The active users manager.
    *
-   * @var \Drupal\active_users\ActiveUsersManager
+   * @var \Drupal\active_user\ActiveUserManagerInterface
    */
   protected $manager;
 
   /**
    * Constructs a user list controller.
    *
-   * @param \Drupal\active_users\ActiveUsersManager $manager
+   * @param \Drupal\active_user\ActiveUserManagerInterface $manager
    *   The active users manager.
    */
-  public function __construct(ActiveUsersManager $manager) {
+  public function __construct(ActiveUserManagerInterface $manager) {
     $this->manager = $manager;
   }
 
@@ -33,7 +37,7 @@ class ActiveUsersList extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('active_users.manager'));
+    return new static($container->get('active_user.manager'));
   }
 
   /**
@@ -45,11 +49,12 @@ class ActiveUsersList extends ControllerBase {
   public function view() {
     $rows = [];
 
-    foreach ($this->manager->getActiveUsers() as $user) {
+    foreach ($this->manager->getActiveUserList() as $user) {
+      $active_user = $this->manager->getActiveUser($user);
       $rows[]['data'] = [
-        String::checkPlain($user->label()),
-        intval($user->node_count->value),
-        String::checkPlain($user->last_created_node->entity->label()),
+        $user->label(),
+        $active_user->getNodeCount(),
+        $active_user->getLastCreatedNode()->label(),
       ];
     }
 
